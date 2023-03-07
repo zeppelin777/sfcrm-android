@@ -13,4 +13,14 @@
         <item name="android:statusBarColor">?attr/colorPrimaryVariant</item>
         <!-- Customize your theme here. -->
     </style>
+
+
+    <style name="LoadingPbTheme" parent="Base.Widget.AppCompat.ProgressBar">
+        <item name="android:indeterminateTint">@color/purple_500</item>
+        <item name="android:indeterminateTintMode">src_atop</item>
+        <item name="android:indeterminateDuration">500</item>
+    </style>
+
+
+
 </resources>
