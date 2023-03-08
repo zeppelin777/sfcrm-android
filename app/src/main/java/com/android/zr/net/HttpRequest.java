@@ -1,6 +1,5 @@
-package com.android.zr.utils;
+package com.android.zr.net;
 
-import com.android.zr.net.ResponseCallBack;
 import com.zhy.http.okhttp.OkHttpUtils;
 import com.zhy.http.okhttp.builder.GetBuilder;
 import com.zhy.http.okhttp.https.HttpsUtils;

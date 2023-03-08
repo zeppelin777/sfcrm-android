@@ -5,7 +5,7 @@ package com.android.zr.base
  */
 object UrlUtils {
 
-    private const val BaseUrl = "http://crzz.cc:18443"
+    private const val BaseUrl = "http://crzz.cc:18000"
     const val LoginUrl = "$BaseUrl/login"
 
 }
