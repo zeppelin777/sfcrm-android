@@ -7,5 +7,6 @@ object UrlUtils {
 
     private const val BaseUrl = "http://crzz.cc:18000"
     const val LoginUrl = "$BaseUrl/login"
+    const val LogoutUrl = "$BaseUrl/logout"
 
 }

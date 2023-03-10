@@ -6,6 +6,7 @@ import android.text.TextUtils;
 import com.android.zr.R;
 import com.android.zr.activity.BaseActivity;
 import com.android.zr.bean.BaseBean;
+import com.android.zr.utils.LogUtil;
 import com.android.zr.utils.ToastUtils;
 import com.android.zr.utils.UiUtils;
 import com.google.gson.Gson;
@@ -44,6 +45,7 @@ public abstract class NetResponseCallBack<T> extends ResponseCallBack<T> {
     @Override
     public void onResponse(String response, int id) {
         try {
+            LogUtil.d("%s", response);
             Gson gson = new Gson();
             BaseBean<T> baseBean = gson.fromJson(response, getType());
             if (baseBean.getCode() == 0) {

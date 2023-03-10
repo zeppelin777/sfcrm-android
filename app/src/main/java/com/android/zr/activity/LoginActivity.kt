@@ -1,8 +1,15 @@
 package com.android.zr.activity
 
 import android.Manifest
+import android.app.AppOpsManager
+import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.graphics.PorterDuff
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.Settings
 import android.text.TextUtils
 import com.android.zr.base.UrlUtils
 import com.android.zr.bean.BaseBean
@@ -11,8 +18,11 @@ import com.android.zr.bean.LoginParams
 import com.android.zr.databinding.ActivityLoginBinding
 import com.android.zr.net.HttpRequest
 import com.android.zr.net.NetResponseCallBack
+import com.android.zr.utils.Constants
 import com.android.zr.utils.LogUtil
 import com.android.zr.utils.SpUtils
+import com.android.zr.utils.ToastUtils
+import com.google.android.material.textfield.TextInputLayout
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.permissionx.guolindev.PermissionX
@@ -31,12 +41,26 @@ class LoginActivity : BaseActivity() {
         val binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
+        binding.inputPwd.endIconMode = TextInputLayout.END_ICON_PASSWORD_TOGGLE
+
+
+//        if (!checkOverlay()) {
+//            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
+//            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+//            startActivity(intent)
+//        }
+
+//        Intent().apply {
+//            action = Settings.ACTION_APPLICATION_DETAILS_SETTINGS
+//            data = Uri.parse("package:$packageName")
+//            startActivity(this)
+//        }
 
         binding.btLogin.setOnClickListener {
             showLoading()
             val params = LoginParams().apply {
-                username = "15836776815"
-                password = "Q97eV5n4Whmt"
+                username = binding.etUsername.text.toString()
+                password = binding.etPassword.text.toString()
             }
 
             HttpRequest.getInstance().postJson(
@@ -62,8 +86,10 @@ class LoginActivity : BaseActivity() {
                                 }
                                 .request { allGranted, _, _ ->
                                     if (allGranted) {
-                                        SpUtils.saveString("token", data.adminToken)
-                                        startActivity(Intent(this@LoginActivity, MainActivity::class.java))
+                                        SpUtils.saveString(Constants.TOKEN, data.adminToken)
+                                        val intent = Intent(this@LoginActivity, MainActivity::class.java)
+                                        intent.putExtra("user_id", data.userId)
+                                        startActivity(intent)
                                         finish()
                                     }
                                 }
@@ -75,5 +101,13 @@ class LoginActivity : BaseActivity() {
 
     }
 
+//    private fun checkOverlay(): Boolean {
+//        val appOpsManager = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+//        val pm = packageManager
+//        val ai = pm.getApplicationInfo(packageName, PackageManager.GET_ACTIVITIES)
+//        val mode = appOpsManager.checkOpNoThrow(AppOpsManager.OPSTR_SYSTEM_ALERT_WINDOW, ai.uid, packageName)
+//        LogUtil.d("%s", "mode = $mode")
+//        return mode == AppOpsManager.MODE_ALLOWED
+//    }
 
 }

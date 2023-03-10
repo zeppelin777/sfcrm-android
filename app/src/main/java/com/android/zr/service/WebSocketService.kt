@@ -30,6 +30,12 @@ class WebSocketService : Service() {
         setupSocket()
     }
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val userId = intent?.getStringExtra("user_id")
+        LogUtil.d("%s", "user id = $userId")
+        return super.onStartCommand(intent, flags, startId)
+    }
+
     private fun setupNotification() {
         val intent = Intent(this, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(

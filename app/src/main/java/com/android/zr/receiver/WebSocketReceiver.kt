@@ -17,7 +17,6 @@ class WebSocketReceiver : BroadcastReceiver() {
         if (intent?.action != null && intent.action.equals(Constants.RECEIVER_ACTION)) {
             val phoneNum = intent.getStringExtra("phone")
 
-            LogUtil.d("%s", "phone = $phoneNum")
             val phoneIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phoneNum"))
             phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context?.startActivity(phoneIntent)

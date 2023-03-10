@@ -6,6 +6,7 @@ package com.android.zr.utils
 object Constants {
 
     const val SP_NAME = "config"
+    const val TOKEN = "admin_token"
     const val NOTIFICATION_WEBSOCKET_ID = "notification_websocket"
 
     const val RECEIVER_ACTION = "com.android.zr.action.websocket"

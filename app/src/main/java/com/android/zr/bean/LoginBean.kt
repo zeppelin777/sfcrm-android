@@ -6,5 +6,6 @@ package com.android.zr.bean
 class LoginBean {
 
     var adminToken: String? = null
+    var userId: String? = null
 
 }

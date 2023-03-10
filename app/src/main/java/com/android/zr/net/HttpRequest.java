@@ -42,6 +42,7 @@ public class HttpRequest {
      */
     private void initOkHttp() {
         OkHttpClient.Builder builder = new OkHttpClient.Builder()
+                .addInterceptor(new HeaderInterceptor())
                 .connectTimeout(TIMEOUT, TimeUnit.SECONDS)
                 .readTimeout(TIMEOUT, TimeUnit.SECONDS)
                 .writeTimeout(TIMEOUT, TimeUnit.SECONDS);
