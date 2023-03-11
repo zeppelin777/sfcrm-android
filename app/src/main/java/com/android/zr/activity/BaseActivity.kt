@@ -1,6 +1,7 @@
 package com.android.zr.activity
 
 import android.os.Bundle
+import android.text.TextUtils
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.android.zr.R
@@ -48,14 +49,16 @@ open class BaseActivity : AppCompatActivity() {
 
     private lateinit var tipsDialog: AlertDialog
 
-    open fun showTips(msg: String) {
-        if (!::tipsDialog.isInitialized) {
-            tipsDialog = AlertDialog.Builder(this)
-                .setPositiveButton(getString(R.string.confirm)) { _, _ -> }
-                .create()
+    open fun showTips(msg: String?) {
+        if (!TextUtils.isEmpty(msg)) {
+            if (!::tipsDialog.isInitialized) {
+                tipsDialog = AlertDialog.Builder(this)
+                    .setPositiveButton(getString(R.string.confirm)) { _, _ -> }
+                    .create()
+            }
+            tipsDialog.setMessage(msg)
+            tipsDialog.show()
         }
-        tipsDialog.setMessage(msg)
-        tipsDialog.show()
     }
 
     private fun hideTips() {

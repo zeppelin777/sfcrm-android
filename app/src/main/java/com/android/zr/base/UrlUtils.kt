@@ -8,5 +8,8 @@ object UrlUtils {
     private const val BaseUrl = "http://crzz.cc:18000"
     const val LoginUrl = "$BaseUrl/login"
     const val LogoutUrl = "$BaseUrl/logout"
+    const val SendCallTimeUrl = "$BaseUrl/crmCall/save"
+
+    const val WebSocketUrl = "ws://crzz.cc:18000/ws/android"
 
 }

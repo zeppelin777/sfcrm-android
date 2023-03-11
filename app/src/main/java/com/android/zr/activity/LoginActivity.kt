@@ -34,14 +34,22 @@ import java.lang.reflect.Type
  */
 class LoginActivity : BaseActivity() {
 
+    private lateinit var binding: ActivityLoginBinding
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val binding = ActivityLoginBinding.inflate(layoutInflater)
+        binding = ActivityLoginBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
         binding.inputPwd.endIconMode = TextInputLayout.END_ICON_PASSWORD_TOGGLE
+
+        if (!TextUtils.isEmpty(SpUtils.getString(Constants.TOKEN)) &&
+            !TextUtils.isEmpty(SpUtils.getString(Constants.USER_ID))) {
+            jumpToMain(SpUtils.getString(Constants.USER_ID))
+        } else {
+            initViews()
+        }
+
 
 
 //        if (!checkOverlay()) {
@@ -56,6 +64,11 @@ class LoginActivity : BaseActivity() {
 //            startActivity(this)
 //        }
 
+
+
+    }
+
+    private fun initViews() {
         binding.btLogin.setOnClickListener {
             showLoading()
             val params = LoginParams().apply {
@@ -87,10 +100,8 @@ class LoginActivity : BaseActivity() {
                                 .request { allGranted, _, _ ->
                                     if (allGranted) {
                                         SpUtils.saveString(Constants.TOKEN, data.adminToken)
-                                        val intent = Intent(this@LoginActivity, MainActivity::class.java)
-                                        intent.putExtra("user_id", data.userId)
-                                        startActivity(intent)
-                                        finish()
+                                        SpUtils.saveString(Constants.USER_ID, data.userId)
+                                        jumpToMain(data.userId!!)
                                     }
                                 }
 
@@ -98,7 +109,13 @@ class LoginActivity : BaseActivity() {
                     }
                 })
         }
+    }
 
+    private fun jumpToMain(userId: String) {
+        val intent = Intent(this@LoginActivity, MainActivity::class.java)
+        intent.putExtra("user_id", userId)
+        startActivity(intent)
+        finish()
     }
 
 //    private fun checkOverlay(): Boolean {

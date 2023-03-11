@@ -10,10 +10,17 @@ import android.os.Message
 import android.os.Messenger
 import androidx.core.app.NotificationCompat
 import com.android.zr.activity.MainActivity
+import com.android.zr.base.UrlUtils
+import com.android.zr.bean.SocketBean
 import com.android.zr.net.HttpRequest
 import com.android.zr.utils.Constants
 import com.android.zr.utils.LogUtil
+import com.android.zr.utils.ToastUtils
+import com.google.gson.Gson
+import okhttp3.Request
+import okhttp3.Response
 import okhttp3.WebSocket
+import okhttp3.WebSocketListener
 import java.lang.ref.WeakReference
 import java.util.concurrent.TimeUnit
 
@@ -27,12 +34,12 @@ class WebSocketService : Service() {
         super.onCreate()
 
         setupNotification()
-        setupSocket()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         val userId = intent?.getStringExtra("user_id")
         LogUtil.d("%s", "user id = $userId")
+        setupSocket(userId)
         return super.onStartCommand(intent, flags, startId)
     }
 
@@ -57,23 +64,34 @@ class WebSocketService : Service() {
 
     private var socket: WebSocket? = null
 
-    private fun setupSocket() {
+    private fun setupSocket(userId: String?) {
         val client = HttpRequest.getInstance().httpClient
         val newClient = client.newBuilder().pingInterval(10, TimeUnit.SECONDS).build()
-//        val request = Request.Builder().url("").build()
-//        socket = newClient.newWebSocket(request, object : WebSocketListener() {
-//
-//            override fun onMessage(webSocket: WebSocket, text: String) {
-//                super.onMessage(webSocket, text)
-//
-//
-//            }
-//        })
+        val request = Request.Builder().url("${UrlUtils.WebSocketUrl}/$userId").build()
+        socket = newClient.newWebSocket(request, object : WebSocketListener() {
 
-        val intent = Intent()
-        intent.action = Constants.RECEIVER_ACTION
-        intent.putExtra("phone", "10086")
-        sendBroadcast(intent)
+            override fun onOpen(webSocket: WebSocket, response: Response) {
+                super.onOpen(webSocket, response)
+                LogUtil.d("%s", "response = $response")
+            }
+
+            override fun onMessage(webSocket: WebSocket, text: String) {
+                super.onMessage(webSocket, text)
+
+                LogUtil.d("%s", "text = $text")
+
+                val gson = Gson()
+                val bean = gson.fromJson(text, SocketBean::class.java)
+                val intent = Intent()
+                intent.action = Constants.RECEIVER_ACTION
+                intent.putExtra("action", bean)
+                sendBroadcast(intent)
+            }
+
+
+        })
+
+
     }
 
 

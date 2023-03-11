@@ -7,6 +7,7 @@ object Constants {
 
     const val SP_NAME = "config"
     const val TOKEN = "admin_token"
+    const val USER_ID = "user_id"
     const val NOTIFICATION_WEBSOCKET_ID = "notification_websocket"
 
     const val RECEIVER_ACTION = "com.android.zr.action.websocket"
