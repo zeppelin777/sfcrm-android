@@ -6,8 +6,15 @@ package com.android.zr.bean
 class CallTimeParams {
 
     var createUserId: String? = null
-    var talkTime: Long = 0
     var number: String? = null
     var type = 0
+    var startTime: Long = 0
+    var answerTime: Long = 0
+    var endTime: Long = 0
+    var talkTime: Long = 0
+    var dialTime: Long = 0
+    var state: Int = 0
+    var model: String? = null
+
 
 }

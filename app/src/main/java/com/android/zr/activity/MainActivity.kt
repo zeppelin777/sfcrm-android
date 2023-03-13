@@ -9,7 +9,7 @@ import android.telephony.TelephonyManager
 import android.view.View
 import com.android.zr.R
 import com.android.zr.base.UrlUtils
-import com.android.zr.bean.BaseBean
+import com.android.zr.bean.CallLogBean
 import com.android.zr.bean.CallTimeParams
 import com.android.zr.bean.EmptyBean
 import com.android.zr.bean.SocketBean
@@ -17,10 +17,7 @@ import com.android.zr.databinding.ActivityMainBinding
 import com.android.zr.net.HttpRequest
 import com.android.zr.net.NetResponseCallBack
 import com.android.zr.service.WebSocketService
-import com.android.zr.utils.Constants
-import com.android.zr.utils.LogUtil
-import com.android.zr.utils.SpUtils
-import com.android.zr.utils.ToastUtils
+import com.android.zr.utils.*
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import java.lang.ref.WeakReference
@@ -34,11 +31,15 @@ class MainActivity : BaseActivity(), View.OnClickListener {
     private var serviceIntent: Intent? = null
 
     private var userId: String? = null
+    private var model: String? = null
+    private var callType: Int = Constants.CALL_TYPE_NO_CALL //0未拨打，1拨打未接通，2接通，3呼入未接通
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        binding.tvUsername.text = SpUtils.getString(Constants.USER_NAME)
         binding.btnLogout.setOnClickListener(this)
 
         userId = intent.getStringExtra("user_id")
@@ -76,35 +77,40 @@ class MainActivity : BaseActivity(), View.OnClickListener {
 
                     if (connected) {
 
+                        val currentTimeMillis = System.currentTimeMillis()
+                        val time = DateUtils.getFormatDateTime("yyyy/MM/dd HH:mm:ss", currentTimeMillis)
+                        LogUtil.d("%s", "挂断时间 = $time = $currentTimeMillis")
+
                         val intent = Intent(this@MainActivity, MainActivity::class.java)
                         startActivity(intent)
 
+                        showLoading()
                         Handler(Looper.getMainLooper()).postDelayed({
-                            val callTime = getCallHistory(phoneNumber)
-                            val msg = Message.obtain()
-                            msg.what = Constants.WHAT_CALL_TIME
-                            val bundle = Bundle()
-                            bundle.putLong("time", callTime)
-                            msg.data = bundle
-                            remoteService?.send(msg)
+                            val callLogBean = getCallHistory(phoneNumber)
+                            hideLoading()
+                            if (callLogBean != null) {
+                                sendCallTime(callLogBean, currentTimeMillis)
 
-                            sendCallTime(callTime, phoneNumber)
-
+                                val msg = Message.obtain()
+                                msg.what = Constants.WHAT_CALL_TIME
+                                val bundle = Bundle()
+                                bundle.putLong("time", callLogBean.duration)
+                                msg.data = bundle
+                                remoteService?.send(msg)
+                            }
                         }, 3000)
                     }
+                    callType = Constants.CALL_TYPE_NO_CALL
 
                 }
                 TelephonyManager.CALL_STATE_OFFHOOK -> {
+                    callType = Constants.CALL_TYPE_CALL_NO_ANSWER
                     LogUtil.d("%s", "out 通话中 $phoneNumber")
                 }
             }
         }
     }
 
-    override fun onNewIntent(intent: Intent?) {
-        super.onNewIntent(intent)
-        LogUtil.d("%s", "on new intent")
-    }
 
     override fun onClick(v: View?) {
         when (v?.id) {
@@ -117,6 +123,7 @@ class MainActivity : BaseActivity(), View.OnClickListener {
                             ToastUtils.showToast("已退出")
                             SpUtils.saveString(Constants.TOKEN, "")
                             SpUtils.saveString(Constants.USER_ID, "")
+                            SpUtils.saveString(Constants.USER_NAME, "")
                             startActivity(Intent(this@MainActivity, LoginActivity::class.java))
                             finish()
                         }
@@ -151,7 +158,7 @@ class MainActivity : BaseActivity(), View.OnClickListener {
     }
 
 
-    private fun getCallHistory(phoneNum: String?): Long {
+    private fun getCallHistory(phoneNum: String?): CallLogBean? {
         val cursor = contentResolver.query(
             CallLog.Calls.CONTENT_URI,
             arrayOf(
@@ -166,13 +173,33 @@ class MainActivity : BaseActivity(), View.OnClickListener {
         )
         cursor?.use {
             while (it.moveToNext()) {
+//                val cachedNameColumn = it.getColumnIndexOrThrow(CallLog.Calls.CACHED_NAME)
+//                val cachedName = it.getString(cachedNameColumn)
+
+                val numberColumn = it.getColumnIndexOrThrow(CallLog.Calls.NUMBER)
+                val phoneNumber = it.getString(numberColumn)
+
+                val typeColumn = it.getColumnIndexOrThrow(CallLog.Calls.TYPE)
+                val type = it.getInt(typeColumn)
+
+                val dateColumn = it.getColumnIndexOrThrow(CallLog.Calls.DATE)
+                val date = it.getLong(dateColumn)
+                val dateString = DateUtils.getFormatDateTime("yyyy/MM/dd HH:mm:ss", date)
+
                 val durationColumn = it.getColumnIndexOrThrow(CallLog.Calls.DURATION)
-                val long = it.getLong(durationColumn)
-                LogUtil.d("%s", "查询到的时间 = $long")
-                return long
+                val duration = it.getLong(durationColumn)
+
+//                LogUtil.d("%s", "查询到的cached name = $cachedName")
+                LogUtil.d("%s", "查询到的phone number = $phoneNumber")
+                LogUtil.d("%s", "查询到的type = $type")
+                LogUtil.d("%s", "查询到的date = $date") //开始响铃的时间
+                LogUtil.d("%s", "查询到的date string = $dateString")
+                LogUtil.d("%s", "查询到的时间 = $duration")
+
+                return CallLogBean(phoneNumber, type, date, duration)
             }
         }
-        return 0
+        return null
     }
 
 
@@ -195,19 +222,58 @@ class MainActivity : BaseActivity(), View.OnClickListener {
     }
 
 
-    private fun sendCallTime(callTime: Long, phoneNumber: String?) {
+    private fun sendCallTime(callLogBean: CallLogBean, hangUpTime: Long) {
         showLoading()
         val params = CallTimeParams().apply {
             createUserId = userId
-            talkTime = callTime
-            number = phoneNumber
+            talkTime = callLogBean.duration
+            number = callLogBean.phoneNumber
+
+
+            startTime = callLogBean.date
+
+            val answerTimeLong = hangUpTime - callLogBean.duration* 1000
+            answerTime = answerTimeLong
+
+            endTime = hangUpTime
+
+            val dialTimeLong = answerTimeLong - callLogBean.date
+            dialTime = dialTimeLong
+
+
+            state = if (callLogBean.duration > 0) {
+                Constants.CALL_TYPE_CALL_HAS_ANSWER
+            } else {
+                Constants.CALL_TYPE_CALL_NO_ANSWER
+            }
+            model = this@MainActivity.model
+
+            LogUtil.d("%s", "开始拨打的时间： ${callLogBean.date} , 接通的时间：$answerTimeLong , 结束的时间：$hangUpTime , 拨打到接通的时间：$dialTimeLong")
+            LogUtil.d("%s", "开始拨打的时间： ${DateUtils.getFormatDateTime("HH:mm:ss", callLogBean.date)} , 接通的时间：${DateUtils.getFormatDateTime("HH:mm:ss", answerTimeLong)} , 结束的时间：${DateUtils.getFormatDateTime("HH:mm:ss", hangUpTime)}")
         }
+        LogUtil.d("%s", Gson().toJson(params))
         HttpRequest.getInstance().postJson(UrlUtils.SendCallTimeUrl, Gson().toJson(params), this, object : NetResponseCallBack<EmptyBean>(this) {
             override fun onSuccessObject(data: EmptyBean?, id: Int) {
                 super.onSuccessObject(data, id)
                 ToastUtils.showToast("保存成功")
+                resetValues()
+            }
+
+            override fun onFail(msg: String?, id: Int) {
+                super.onFail(msg, id)
+                resetValues()
+            }
+
+            override fun onError(id: Int) {
+                super.onError(id)
+                resetValues()
             }
         })
+    }
+
+    private fun resetValues() {
+        model = ""
+        callType = Constants.CALL_TYPE_NO_CALL
     }
 
 
@@ -220,17 +286,21 @@ class MainActivity : BaseActivity(), View.OnClickListener {
 
                 val bean = intent.getParcelableExtra<SocketBean>("action")!!
 
+                val activity = contextRef.get() as MainActivity
                 when (bean.action) {
                     "connect" -> {
                         ToastUtils.showToast(bean.message)
                     }
                     "message" -> {
-                        (contextRef.get() as MainActivity).showTips(bean.message)
+                        activity.showTips(bean.message)
                     }
                     "phone" -> {
+                        activity.model = bean.model
+//                        val phoneIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:10086"))
+//                        val phoneIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:15003832295"))
                         val phoneIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${bean.message}"))
-                        phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                        context?.startActivity(phoneIntent)
+//                        phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        activity.startActivity(phoneIntent)
                     }
                 }
 

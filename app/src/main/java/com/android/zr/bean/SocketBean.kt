@@ -10,12 +10,14 @@ class SocketBean() : Parcelable {
 
     var action: String? = null
     var from: String? = null
+    var model: String? = null
     var to: String? = null
     var message: String? = null
 
     constructor(parcel: Parcel) : this() {
         action = parcel.readString()
         from = parcel.readString()
+        model = parcel.readString()
         to = parcel.readString()
         message = parcel.readString()
     }
@@ -23,6 +25,7 @@ class SocketBean() : Parcelable {
     override fun writeToParcel(parcel: Parcel, flags: Int) {
         parcel.writeString(action)
         parcel.writeString(from)
+        parcel.writeString(model)
         parcel.writeString(to)
         parcel.writeString(message)
     }

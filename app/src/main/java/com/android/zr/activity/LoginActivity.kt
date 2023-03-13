@@ -101,6 +101,7 @@ class LoginActivity : BaseActivity() {
                                     if (allGranted) {
                                         SpUtils.saveString(Constants.TOKEN, data.adminToken)
                                         SpUtils.saveString(Constants.USER_ID, data.userId)
+                                        SpUtils.saveString(Constants.USER_NAME, binding.etUsername.text.toString())
                                         jumpToMain(data.userId!!)
                                     }
                                 }
