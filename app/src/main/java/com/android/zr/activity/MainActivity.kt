@@ -297,7 +297,6 @@ class MainActivity : BaseActivity(), View.OnClickListener {
                     "phone" -> {
                         activity.model = bean.model
 //                        val phoneIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:10086"))
-//                        val phoneIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:15003832295"))
                         val phoneIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:${bean.message}"))
 //                        phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         activity.startActivity(phoneIntent)

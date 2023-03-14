@@ -3,12 +3,14 @@ package com.android.zr.service
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.graphics.BitmapFactory
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
 import android.os.Message
 import android.os.Messenger
 import androidx.core.app.NotificationCompat
+import com.android.zr.R
 import com.android.zr.activity.MainActivity
 import com.android.zr.base.UrlUtils
 import com.android.zr.bean.SocketBean
@@ -53,11 +55,13 @@ class WebSocketService : Service() {
         )
 
         val builder = NotificationCompat.Builder(this, Constants.NOTIFICATION_WEBSOCKET_ID)
-            .setTicker("zhongrong")
+            .setTicker(getString(R.string.app_name))
             .setWhen(System.currentTimeMillis())
             .setContentIntent(pendingIntent)
-            .setContentTitle("zhongrong")
-            .setContentText("zhognrong")
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setLargeIcon(BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher))
+            .setContentTitle(getString(R.string.app_name))
+            .setContentText(getString(R.string.app_name))
             .setPriority(NotificationCompat.PRIORITY_HIGH)
         startForeground(1, builder.build())
     }
