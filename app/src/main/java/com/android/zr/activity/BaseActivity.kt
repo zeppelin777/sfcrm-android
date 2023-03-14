@@ -53,7 +53,9 @@ open class BaseActivity : AppCompatActivity() {
         if (!TextUtils.isEmpty(msg)) {
             if (!::tipsDialog.isInitialized) {
                 tipsDialog = AlertDialog.Builder(this)
-                    .setPositiveButton(getString(R.string.confirm)) { _, _ -> }
+                    .setPositiveButton(getString(R.string.confirm)) { dialog, _ ->
+                        dialog.dismiss()
+                    }
                     .create()
             }
             tipsDialog.setMessage(msg)
