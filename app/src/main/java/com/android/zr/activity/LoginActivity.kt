@@ -104,7 +104,8 @@ class LoginActivity : BaseActivity() {
                             PermissionX.init(this@LoginActivity)
                                 .permissions(
                                     Manifest.permission.READ_CALL_LOG,
-                                    Manifest.permission.READ_PHONE_STATE
+                                    Manifest.permission.READ_PHONE_STATE,
+                                    Manifest.permission.CALL_PHONE
                                 )
                                 .onExplainRequestReason { scope, deniedList ->
                                     scope.showRequestReasonDialog(
@@ -156,7 +157,6 @@ class LoginActivity : BaseActivity() {
             ai.uid,
             packageName
         )
-        LogUtil.d("%s", "mode = $mode")
         return mode == AppOpsManager.MODE_ALLOWED
     }
 
