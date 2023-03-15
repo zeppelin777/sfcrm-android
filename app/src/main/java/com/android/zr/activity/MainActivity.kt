@@ -117,7 +117,7 @@ class MainActivity : BaseActivity(), View.OnClickListener {
             R.id.btn_logout -> {
                 showLoading()
                 HttpRequest.getInstance()
-                    .get(UrlUtils.LogoutUrl, this, object : NetResponseCallBack<EmptyBean>(this) {
+                    .post(UrlUtils.LogoutUrl, null,this, object : NetResponseCallBack<EmptyBean>(this) {
                         override fun onSuccessObject(data: EmptyBean?, id: Int) {
                             super.onSuccessObject(data, id)
                             ToastUtils.showToast("已退出")
@@ -303,10 +303,22 @@ class MainActivity : BaseActivity(), View.OnClickListener {
                         activity.showTips(bean.message)
                     }
                     "phone" -> {
-                        activity.model = bean.model
-//                        val phoneIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:10086"))
-                        val phoneIntent = Intent(Intent.ACTION_CALL, Uri.parse("tel:${bean.message}"))
-                        activity.startActivity(phoneIntent)
+                        HttpRequest.getInstance().post(UrlUtils.CheckTokenUrl, null, activity, object : NetResponseCallBack<EmptyBean>(activity) {
+                            override fun onSuccessObject(data: EmptyBean?, id: Int) {
+                                super.onSuccessObject(data, id)
+                                activity.model = bean.model
+//                              val phoneIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:10086"))
+                                val phoneIntent = Intent(Intent.ACTION_CALL, Uri.parse("tel:${bean.message}"))
+                                activity.startActivity(phoneIntent)
+                            }
+
+                            override fun onFail(code: Int, msg: String?, id: Int) {
+                                super.onFail(code, msg, id)
+                                activity.logout()
+                            }
+
+                        })
+
                     }
                 }
 
