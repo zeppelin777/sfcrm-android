@@ -4,6 +4,7 @@ import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
 import android.graphics.BitmapFactory
+import android.net.Uri
 import android.os.Handler
 import android.os.IBinder
 import android.os.Looper
@@ -90,6 +91,11 @@ class WebSocketService : Service() {
                 intent.action = Constants.RECEIVER_ACTION
                 intent.putExtra("action", bean)
                 sendBroadcast(intent)
+//                if ("phone" == bean.action) {
+//                    val phoneIntent = Intent(Intent.ACTION_CALL, Uri.parse("tel:${bean.message}"))
+//                    phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+//                    startActivity(phoneIntent)
+//                }
             }
 
 

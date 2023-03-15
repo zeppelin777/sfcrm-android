@@ -121,16 +121,20 @@ class MainActivity : BaseActivity(), View.OnClickListener {
                         override fun onSuccessObject(data: EmptyBean?, id: Int) {
                             super.onSuccessObject(data, id)
                             ToastUtils.showToast("已退出")
-                            SpUtils.saveString(Constants.TOKEN, "")
-                            SpUtils.saveString(Constants.USER_ID, "")
-                            SpUtils.saveString(Constants.USER_NAME, "")
-                            startActivity(Intent(this@MainActivity, LoginActivity::class.java))
-                            finish()
+                            logout()
                         }
 
                     })
             }
         }
+    }
+
+    private fun logout() {
+        SpUtils.saveString(Constants.TOKEN, "")
+        SpUtils.saveString(Constants.USER_ID, "")
+        SpUtils.saveString(Constants.USER_NAME, "")
+        startActivity(Intent(this@MainActivity, LoginActivity::class.java))
+        finish()
     }
 
 
@@ -259,9 +263,13 @@ class MainActivity : BaseActivity(), View.OnClickListener {
                 resetValues()
             }
 
-            override fun onFail(msg: String?, id: Int) {
-                super.onFail(msg, id)
+            override fun onFail(responseCode: Int, msg: String?, id: Int) {
+                super.onFail(responseCode, msg, id)
                 resetValues()
+                if (responseCode == 302) {
+                    logout()
+                }
+                // {"code":302,"msg":"请先登录！","data":{"extra":1,"extraTime":"2023-03-15 16:03:57"}}
             }
 
             override fun onError(id: Int) {
@@ -298,7 +306,6 @@ class MainActivity : BaseActivity(), View.OnClickListener {
                         activity.model = bean.model
 //                        val phoneIntent = Intent(Intent.ACTION_DIAL, Uri.parse("tel:10086"))
                         val phoneIntent = Intent(Intent.ACTION_CALL, Uri.parse("tel:${bean.message}"))
-//                        phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                         activity.startActivity(phoneIntent)
                     }
                 }

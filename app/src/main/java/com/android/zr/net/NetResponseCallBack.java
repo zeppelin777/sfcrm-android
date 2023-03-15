@@ -53,7 +53,7 @@ public abstract class NetResponseCallBack<T> extends ResponseCallBack<T> {
             if (baseBean.getCode() == 0) {
                 onSuccessObject(baseBean.getData(), id);
             } else {
-                onFail(baseBean.getMsg(), id);
+                onFail(baseBean.getCode(), baseBean.getMsg(), id);
             }
         } catch (final Exception e) {
             e.printStackTrace();
@@ -83,7 +83,7 @@ public abstract class NetResponseCallBack<T> extends ResponseCallBack<T> {
     }
 
     @Override
-    public void onFail(String msg, int id) {
+    public void onFail(int code, String msg, int id) {
         hideLoading();
         if (!TextUtils.isEmpty(msg)) {
             showTips(msg);

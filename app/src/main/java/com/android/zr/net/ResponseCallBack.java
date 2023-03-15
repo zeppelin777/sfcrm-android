@@ -14,7 +14,7 @@ public abstract class ResponseCallBack<T> extends Callback<String> {
 
     public abstract void onSuccessObject(T data, int id);
 
-    public abstract void onFail(String msg, int id);
+    public abstract void onFail(int code, String msg, int id);
 
     public abstract void onError(int id);
 
