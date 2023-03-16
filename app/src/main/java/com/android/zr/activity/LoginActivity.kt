@@ -45,6 +45,14 @@ class LoginActivity : BaseActivity() {
         setContentView(binding.root)
         binding.inputPwd.endIconMode = TextInputLayout.END_ICON_PASSWORD_TOGGLE
 
+        val username = SpUtils.getString(Constants.USER_NAME)
+        val pwd = SpUtils.getString(Constants.PWD)
+        if (!TextUtils.isEmpty(username) && !TextUtils.isEmpty(pwd)) {
+            binding.etUsername.setText(username)
+            binding.etPassword.setText(pwd)
+        }
+
+
         if (!TextUtils.isEmpty(SpUtils.getString(Constants.TOKEN)) &&
             !TextUtils.isEmpty(SpUtils.getString(Constants.USER_ID))
         ) {
@@ -127,10 +135,8 @@ class LoginActivity : BaseActivity() {
                                     if (allGranted) {
                                         SpUtils.saveString(Constants.TOKEN, data.adminToken)
                                         SpUtils.saveString(Constants.USER_ID, data.userId)
-                                        SpUtils.saveString(
-                                            Constants.USER_NAME,
-                                            binding.etUsername.text.toString()
-                                        )
+                                        SpUtils.saveString(Constants.USER_NAME, binding.etUsername.text.toString())
+                                        SpUtils.saveString(Constants.PWD, binding.etPassword.text.toString())
                                         jumpToMain(data.userId!!)
                                     }
                                 }

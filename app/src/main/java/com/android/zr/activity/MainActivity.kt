@@ -132,7 +132,8 @@ class MainActivity : BaseActivity(), View.OnClickListener {
     private fun logout() {
         SpUtils.saveString(Constants.TOKEN, "")
         SpUtils.saveString(Constants.USER_ID, "")
-        SpUtils.saveString(Constants.USER_NAME, "")
+//        SpUtils.saveString(Constants.USER_NAME, "")
+//        SpUtils.saveString(Constants.PWD, "")
         startActivity(Intent(this@MainActivity, LoginActivity::class.java))
         finish()
     }

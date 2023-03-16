@@ -9,6 +9,7 @@ object Constants {
     const val TOKEN = "admin_token"
     const val USER_ID = "user_id"
     const val USER_NAME = "user_name"
+    const val PWD = "pwd"
 
     const val NOTIFICATION_WEBSOCKET_ID = "notification_websocket"
 
