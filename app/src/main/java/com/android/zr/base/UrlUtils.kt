@@ -9,7 +9,7 @@ object UrlUtils {
 //    const val WebSocketUrl = "ws://crzz.cc:18000/ws/android"
 
     private const val BaseUrl = "https://zhongrong.work"
-    const val WebSocketUrl = "ws://zhongrong.work/ws/android"
+    const val WebSocketUrl = "wss://zhongrong.work/ws/android"
 
     const val CheckTokenUrl = "$BaseUrl/adminUser/checkToken"
     const val LoginUrl = "$BaseUrl/login"

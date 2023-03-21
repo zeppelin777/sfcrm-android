@@ -2,28 +2,28 @@ package com.android.zr.service
 
 import android.app.PendingIntent
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
-import android.os.Handler
-import android.os.IBinder
-import android.os.Looper
-import android.os.Message
-import android.os.Messenger
+import android.os.*
+import android.provider.CallLog
+import android.telephony.PhoneStateListener
+import android.telephony.TelephonyManager
 import androidx.core.app.NotificationCompat
 import com.android.zr.R
+import com.android.zr.activity.LoginActivity
 import com.android.zr.activity.MainActivity
 import com.android.zr.base.UrlUtils
+import com.android.zr.bean.CallLogBean
+import com.android.zr.bean.CallTimeParams
+import com.android.zr.bean.EmptyBean
 import com.android.zr.bean.SocketBean
 import com.android.zr.net.HttpRequest
-import com.android.zr.utils.Constants
-import com.android.zr.utils.LogUtil
-import com.android.zr.utils.ToastUtils
+import com.android.zr.net.NetResponseCallBack
+import com.android.zr.utils.*
 import com.google.gson.Gson
-import okhttp3.Request
-import okhttp3.Response
-import okhttp3.WebSocket
-import okhttp3.WebSocketListener
+import okhttp3.*
 import java.lang.ref.WeakReference
 import java.util.concurrent.TimeUnit
 
@@ -32,18 +32,90 @@ import java.util.concurrent.TimeUnit
  */
 class WebSocketService : Service() {
 
+    private lateinit var manager: TelephonyManager
+
+    private var callType: Int = Constants.CALL_TYPE_NO_CALL //0未拨打，1拨打未接通，2接通，3呼入未接通
+
+    private var connected = false
+    private var model: String? = null
+
+    private var userId: String? = null
 
     override fun onCreate() {
         super.onCreate()
 
         setupNotification()
+        setupListener()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val userId = intent?.getStringExtra("user_id")
+        userId = intent?.getStringExtra("user_id")
         LogUtil.d("%s", "user id = $userId")
-        setupSocket(userId)
+        setupSocket()
         return super.onStartCommand(intent, flags, startId)
+    }
+
+    private fun setupListener() {
+        manager = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+        manager.listen(stateListener, PhoneStateListener.LISTEN_CALL_STATE)
+    }
+
+    private val stateListener = object : PhoneStateListener() {
+        override fun onCallStateChanged(state: Int, phoneNumber: String?) {
+            super.onCallStateChanged(state, phoneNumber)
+            LogUtil.d("%s", "phone num = +++$phoneNumber---------")
+            when (state) {
+                TelephonyManager.CALL_STATE_RINGING -> {
+                    LogUtil.d("%s", "out 响铃 $phoneNumber")
+                }
+                TelephonyManager.CALL_STATE_IDLE -> {
+                    LogUtil.d("%s", "out 闲置 $phoneNumber")
+
+                    if (connected) {
+                        val currentTimeMillis = System.currentTimeMillis()
+                        val time = DateUtils.getFormatDateTime("yyyy/MM/dd HH:mm:ss", currentTimeMillis)
+                        LogUtil.d("%s", "挂断时间 = $time = $currentTimeMillis")
+
+                        Intent(this@WebSocketService, MainActivity::class.java).apply {
+                            putExtra("show_loading", true)
+                            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            startActivity(this)
+                        }
+
+                        showLoading()
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            val callLogBean = getCallHistory(phoneNumber)
+                            hideLoading()
+                            if (callLogBean != null) {
+                                sendCallTime(callLogBean, currentTimeMillis)
+                            }
+                        }, 3000)
+                    }
+                    callType = Constants.CALL_TYPE_NO_CALL
+
+                }
+                TelephonyManager.CALL_STATE_OFFHOOK -> {
+                    callType = Constants.CALL_TYPE_CALL_NO_ANSWER
+                    LogUtil.d("%s", "out 通话中 $phoneNumber")
+                }
+            }
+        }
+    }
+
+    private fun showLoading() {
+        Intent().apply {
+            action = Constants.RECEIVER_ACTION
+            putExtra("type", Constants.ACTION_SHOW_LOADING)
+            sendBroadcast(this)
+        }
+    }
+
+    private fun hideLoading() {
+        Intent().apply {
+            action = Constants.RECEIVER_ACTION
+            putExtra("type", Constants.ACTION_HIDE_LOADING)
+            sendBroadcast(this)
+        }
     }
 
     private fun setupNotification() {
@@ -68,40 +140,193 @@ class WebSocketService : Service() {
     }
 
     private var socket: WebSocket? = null
+    private var newClient: OkHttpClient? = null
+    private var request: Request? = null
 
-    private fun setupSocket(userId: String?) {
+    private fun setupSocket() {
         val client = HttpRequest.getInstance().httpClient
-        val newClient = client.newBuilder().pingInterval(10, TimeUnit.SECONDS).build()
-        val request = Request.Builder().url("${UrlUtils.WebSocketUrl}/$userId").build()
-        socket = newClient.newWebSocket(request, object : WebSocketListener() {
+        newClient = client.newBuilder().pingInterval(10, TimeUnit.SECONDS).build()
+        request = Request.Builder().url("${UrlUtils.WebSocketUrl}/$userId").build()
+        connect()
+    }
 
-            override fun onOpen(webSocket: WebSocket, response: Response) {
-                super.onOpen(webSocket, response)
-                LogUtil.d("%s", "response = $response")
+    private fun connect() {
+        socket = newClient!!.newWebSocket(request!!, socketListener)
+        serviceHandler.removeCallbacksAndMessages(null)
+        serviceHandler.sendEmptyMessageDelayed(Constants.WHAT_SEND_DELAY_MSG, 300000) //5 min
+    }
+
+    private val socketListener = object : WebSocketListener() {
+        override fun onOpen(webSocket: WebSocket, response: Response) {
+            super.onOpen(webSocket, response)
+            connected = true
+            LogUtil.d("%s", "response = $response")
+        }
+
+        override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
+            super.onFailure(webSocket, t, response)
+            connected = false
+            connect()
+        }
+
+        override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
+            super.onClosed(webSocket, code, reason)
+            connected = false
+        }
+
+        override fun onMessage(webSocket: WebSocket, text: String) {
+            super.onMessage(webSocket, text)
+
+            LogUtil.d("%s", "text = $text")
+
+            val gson = Gson()
+            val bean = gson.fromJson(text, SocketBean::class.java)
+            Intent().apply {
+                action = Constants.RECEIVER_ACTION
+                putExtra("type", Constants.ACTION_PHONE)
+                putExtra("action", bean)
+                sendBroadcast(this)
             }
 
-            override fun onMessage(webSocket: WebSocket, text: String) {
-                super.onMessage(webSocket, text)
 
-                LogUtil.d("%s", "text = $text")
+            if ("phone" == bean.action) {
+                HttpRequest.getInstance().post(UrlUtils.CheckTokenUrl, null, null,
+                    object : NetResponseCallBack<EmptyBean>(this@WebSocketService) {
 
-                val gson = Gson()
-                val bean = gson.fromJson(text, SocketBean::class.java)
-                val intent = Intent()
-                intent.action = Constants.RECEIVER_ACTION
-                intent.putExtra("action", bean)
-                sendBroadcast(intent)
-//                if ("phone" == bean.action) {
-//                    val phoneIntent = Intent(Intent.ACTION_CALL, Uri.parse("tel:${bean.message}"))
-//                    phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-//                    startActivity(phoneIntent)
-//                }
+                        override fun onSuccessObject(data: EmptyBean?, id: Int) {
+                            super.onSuccessObject(data, id)
+
+                            this@WebSocketService.model = bean.model
+                            val phoneIntent = Intent(Intent.ACTION_CALL, Uri.parse("tel:${bean.message}"))
+                            phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                            startActivity(phoneIntent)
+
+                        }
+
+                        override fun onFail(code: Int, msg: String?, id: Int) {
+                            super.onFail(code, msg, id)
+                            logout()
+                        }
+                    })
+            }
+        }
+    }
+
+    private fun getCallHistory(phoneNum: String?): CallLogBean? {
+        val cursor = contentResolver.query(
+            CallLog.Calls.CONTENT_URI,
+            arrayOf(
+                CallLog.Calls.CACHED_NAME,
+                CallLog.Calls.NUMBER,
+                CallLog.Calls.TYPE,
+                CallLog.Calls.DATE,
+                CallLog.Calls.DURATION
+            ),
+            "${CallLog.Calls.NUMBER} == ?", arrayOf(phoneNum),
+            CallLog.Calls.DEFAULT_SORT_ORDER
+        )
+        cursor?.use {
+            while (it.moveToNext()) {
+//                val cachedNameColumn = it.getColumnIndexOrThrow(CallLog.Calls.CACHED_NAME)
+//                val cachedName = it.getString(cachedNameColumn)
+
+                val numberColumn = it.getColumnIndexOrThrow(CallLog.Calls.NUMBER)
+                val phoneNumber = it.getString(numberColumn)
+
+                val typeColumn = it.getColumnIndexOrThrow(CallLog.Calls.TYPE)
+                val type = it.getInt(typeColumn)
+
+                val dateColumn = it.getColumnIndexOrThrow(CallLog.Calls.DATE)
+                val date = it.getLong(dateColumn)
+                val dateString = DateUtils.getFormatDateTime("yyyy/MM/dd HH:mm:ss", date)
+
+                val durationColumn = it.getColumnIndexOrThrow(CallLog.Calls.DURATION)
+                val duration = it.getLong(durationColumn)
+
+                //                LogUtil.d("%s", "查询到的cached name = $cachedName")
+                LogUtil.d("%s", "查询到的phone number = $phoneNumber")
+                LogUtil.d("%s", "查询到的type = $type")
+                LogUtil.d("%s", "查询到的date = $date") //开始响铃的时间
+                LogUtil.d("%s", "查询到的date string = $dateString")
+                LogUtil.d("%s", "查询到的时间 = $duration")
+
+                return CallLogBean(phoneNumber, type, date, duration)
+            }
+        }
+        return null
+    }
+
+    private fun sendCallTime(callLogBean: CallLogBean, hangUpTime: Long) {
+        showLoading()
+        val params = CallTimeParams().apply {
+            createUserId = userId
+            talkTime = callLogBean.duration
+            number = callLogBean.phoneNumber
+
+            startTime = callLogBean.date
+
+            val answerTimeLong = hangUpTime - callLogBean.duration* 1000
+            answerTime = answerTimeLong
+
+            endTime = hangUpTime
+
+            val dialTimeLong = answerTimeLong - callLogBean.date
+            dialTime = dialTimeLong
+
+
+            state = if (callLogBean.duration > 0) {
+                Constants.CALL_TYPE_CALL_HAS_ANSWER
+            } else {
+                Constants.CALL_TYPE_CALL_NO_ANSWER
+            }
+            model = this@WebSocketService.model
+
+            LogUtil.d("%s", "开始拨打的时间： ${callLogBean.date} , 接通的时间：$answerTimeLong , 结束的时间：$hangUpTime , 拨打到接通的时间：$dialTimeLong")
+            LogUtil.d("%s", "开始拨打的时间： ${DateUtils.getFormatDateTime("HH:mm:ss", callLogBean.date)} , 接通的时间：${DateUtils.getFormatDateTime("HH:mm:ss", answerTimeLong)} , 结束的时间：${DateUtils.getFormatDateTime("HH:mm:ss", hangUpTime)}")
+
+        }
+        LogUtil.d("%s", Gson().toJson(params))
+        HttpRequest.getInstance().postJson(UrlUtils.SendCallTimeUrl, Gson().toJson(params), this, object : NetResponseCallBack<EmptyBean>(this) {
+            override fun onSuccessObject(data: EmptyBean?, id: Int) {
+                super.onSuccessObject(data, id)
+                ToastUtils.showToast("保存成功")
+                resetValues()
+                hideLoading()
             }
 
+            override fun onFail(responseCode: Int, msg: String?, id: Int) {
+                super.onFail(responseCode, msg, id)
+                resetValues()
+                hideLoading()
 
+                if (responseCode == 302) {
+                    logout()
+                }
+                // {"code":302,"msg":"请先登录！","data":{"extra":1,"extraTime":"2023-03-15 16:03:57"}}
+            }
+
+            override fun onError(id: Int) {
+                super.onError(id)
+                resetValues()
+                hideLoading()
+
+            }
         })
+    }
 
+    private fun resetValues() {
+        model = ""
+        callType = Constants.CALL_TYPE_NO_CALL
+    }
 
+    private fun logout() {
+        SpUtils.saveString(Constants.TOKEN, "")
+        SpUtils.saveString(Constants.USER_ID, "")
+
+        val intent = Intent(this@WebSocketService, LoginActivity::class.java)
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+        startActivity(intent)
+        stopSelf()
     }
 
 
@@ -122,12 +347,22 @@ class WebSocketService : Service() {
                     LogUtil.d("%s", "service收到并发送websocket time = $time")
                     service.get()?.socket?.send(time.toString())
                 }
+                Constants.WHAT_SEND_DELAY_MSG -> {
+                    service.get()?.socket?.send("1")
+                    sendEmptyMessageDelayed(Constants.WHAT_SEND_DELAY_MSG, 300000) //5 min
+                }
             }
         }
     }
 
-    private val messenger = Messenger(ServiceHandler(this))
+    private val serviceHandler = ServiceHandler(this)
+    private val messenger = Messenger(serviceHandler)
 
-
+    override fun onDestroy() {
+        super.onDestroy()
+        socket?.close(1000, "用户退出")
+        manager.listen(stateListener, PhoneStateListener.LISTEN_NONE)
+        serviceHandler.removeCallbacksAndMessages(null)
+    }
 
 }
