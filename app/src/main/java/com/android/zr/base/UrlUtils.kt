@@ -5,16 +5,17 @@ package com.android.zr.base
  */
 object UrlUtils {
 
-//    private const val BaseUrl = "http://crzz.cc:18000"
-//    const val WebSocketUrl = "ws://crzz.cc:18000/ws/android"
+    private const val BaseUrl = "http://crzz.cc:18443"
+    const val WebSocketUrl = "ws://crzz.cc:18443/ws/android"
 
-    private const val BaseUrl = "https://zhongrong.work"
-    const val WebSocketUrl = "wss://zhongrong.work/ws/android"
+//    private const val BaseUrl = "https://zhongrong.work"
+//    const val WebSocketUrl = "wss://zhongrong.work/ws/android"
 
     const val CheckTokenUrl = "$BaseUrl/adminUser/checkToken"
     const val LoginUrl = "$BaseUrl/login"
     const val LogoutUrl = "$BaseUrl/logout"
     const val SendCallTimeUrl = "$BaseUrl/crmCall/save"
+    const val UploadRecordUrl = "$BaseUrl/crmCall/upload"
 
 
 }

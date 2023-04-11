@@ -9,6 +9,7 @@ import android.graphics.PorterDuff
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.provider.Settings
 import android.text.TextUtils
 import androidx.appcompat.app.AlertDialog
@@ -29,6 +30,7 @@ import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.permissionx.guolindev.PermissionX
 import com.permissionx.guolindev.callback.RequestCallback
+import java.io.File
 import java.lang.reflect.Type
 
 /**
@@ -60,10 +62,6 @@ class LoginActivity : BaseActivity() {
         } else {
             initViews()
             if (!checkOverlay()) {
-//            val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName"))
-//            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-//            startActivity(intent)
-
                 showPermissionDialog()
             }
         }
@@ -85,7 +83,6 @@ class LoginActivity : BaseActivity() {
             .create()
         tipsDialog.setMessage(getString(R.string.permission_desc))
         tipsDialog.show()
-
     }
 
     private fun initViews() {
@@ -146,6 +143,43 @@ class LoginActivity : BaseActivity() {
                 })
         }
     }
+
+    override fun onResume() {
+        super.onResume()
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (!Environment.isExternalStorageManager()) {
+                AlertDialog.Builder(this)
+                    .setMessage("我们需要访问sd卡的权限，请授权，否则功能无法正常使用")
+                    .setPositiveButton("确认") { _, _ ->
+                        val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                        startActivity(intent)
+                    }.show()
+            }
+        } else {
+            PermissionX.init(this@LoginActivity)
+                .permissions(Manifest.permission.READ_EXTERNAL_STORAGE,)
+                .onExplainRequestReason { scope, deniedList ->
+                    scope.showRequestReasonDialog(
+                        deniedList,
+                        "您已经拒绝过我们的申请授权，请您同意授权，否则功能无法正常使用！",
+                        "确定",
+                        "取消"
+                    )
+                }
+                .onForwardToSettings { scope, deniedList ->
+                    scope.showForwardToSettingsDialog(
+                        deniedList,
+                        "我们需要的一些权限被您拒绝或者系统发生错误导致授权失败，请您到设置页面手动授权，否则功能无法正常使用！",
+                        "确定",
+                        "取消"
+                    )
+                }
+                .request { allGranted, _, _ ->
+
+                }
+        }
+    }
+
 
     private fun jumpToMain(userId: String) {
         val intent = Intent(this@LoginActivity, MainActivity::class.java)

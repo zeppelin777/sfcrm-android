@@ -15,17 +15,18 @@ import com.android.zr.R
 import com.android.zr.activity.LoginActivity
 import com.android.zr.activity.MainActivity
 import com.android.zr.base.UrlUtils
-import com.android.zr.bean.CallLogBean
-import com.android.zr.bean.CallTimeParams
-import com.android.zr.bean.EmptyBean
-import com.android.zr.bean.SocketBean
+import com.android.zr.bean.*
 import com.android.zr.net.HttpRequest
 import com.android.zr.net.NetResponseCallBack
 import com.android.zr.utils.*
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import okhttp3.*
+import java.io.File
 import java.lang.ref.WeakReference
+import java.lang.reflect.Type
 import java.util.concurrent.TimeUnit
+import kotlin.math.abs
 
 /**
  * Created by matthew on 2023/03/08
@@ -189,7 +190,7 @@ class WebSocketService : Service() {
             }
 
 
-            if ("phone" == bean.action) {
+            if ("sendPhone" == bean.action) {
                 HttpRequest.getInstance().post(UrlUtils.CheckTokenUrl, null, null,
                     object : NetResponseCallBack<EmptyBean>(this@WebSocketService) {
 
@@ -197,6 +198,7 @@ class WebSocketService : Service() {
                             super.onSuccessObject(data, id)
 
                             this@WebSocketService.model = bean.model
+//                            val phoneIntent = Intent(Intent.ACTION_CALL, Uri.parse("tel:10086"))
                             val phoneIntent = Intent(Intent.ACTION_CALL, Uri.parse("tel:${bean.message}"))
                             phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             startActivity(phoneIntent)
@@ -286,12 +288,13 @@ class WebSocketService : Service() {
 
         }
         LogUtil.d("%s", Gson().toJson(params))
-        HttpRequest.getInstance().postJson(UrlUtils.SendCallTimeUrl, Gson().toJson(params), this, object : NetResponseCallBack<EmptyBean>(this) {
-            override fun onSuccessObject(data: EmptyBean?, id: Int) {
+        HttpRequest.getInstance().postJson(UrlUtils.SendCallTimeUrl, Gson().toJson(params), this, object : NetResponseCallBack<SaveRecordBean>(this) {
+            override fun onSuccessObject(data: SaveRecordBean?, id: Int) {
                 super.onSuccessObject(data, id)
-                ToastUtils.showToast("保存成功")
+                ToastUtils.showToast("通话记录保存成功")
                 resetValues()
                 hideLoading()
+                uploadRecord(data!!.callRecordId, callLogBean.phoneNumber, params.answerTime)
             }
 
             override fun onFail(responseCode: Int, msg: String?, id: Int) {
@@ -309,9 +312,72 @@ class WebSocketService : Service() {
                 super.onError(id)
                 resetValues()
                 hideLoading()
+            }
 
+            override fun getType(): Type {
+                return object : TypeToken<BaseBean<SaveRecordBean>>() {}.type
             }
         })
+    }
+
+    private fun uploadRecord(id: Long, phoneNum: String?, answerTime: Long) {
+        showLoading()
+        val file = getRecordFile(phoneNum, answerTime)
+        if (file != null) {
+            LogUtil.d("%s", "找到的file文件 = ${file.absolutePath}")
+            HttpRequest.getInstance().upload("${UrlUtils.UploadRecordUrl}?id=$id", "file", null, file, this,
+                object : NetResponseCallBack<EmptyBean>(this) {
+                    override fun onSuccessObject(data: EmptyBean?, id: Int) {
+                        super.onSuccessObject(data, id)
+                        hideLoading()
+                        ToastUtils.showToast("录音保存成功")
+                    }
+
+                    override fun onFail(code: Int, msg: String?, id: Int) {
+                        super.onFail(code, msg, id)
+                        hideLoading()
+                    }
+
+                    override fun onError(id: Int) {
+                        super.onError(id)
+                        hideLoading()
+                    }
+                })
+        } else {
+            hideLoading()
+            ToastUtils.showToast("错误，没有找到录音文件")
+        }
+    }
+
+    private fun getRecordFile(phoneNum: String?, answerTime: Long): File? {
+        val file = File("sdcard/MIUI/sound_recorder/call_rec")
+        if (file.exists() && file.isDirectory) {
+            val files = file.listFiles()
+            if (files != null && files.isNotEmpty()) {
+                val answerFormatTime = DateUtils.getFormatDateTime("yyyyMMddHHmmss", answerTime)
+                val answerLong = answerFormatTime.toLong()
+                for (f in files) {
+                    LogUtil.d("%s", f.absolutePath)
+                    LogUtil.d("%s", f.length())
+                    LogUtil.d("%s", "----------------")
+                    val fileName = f.name  //10086(10086)_20230410131117.mp3
+                    if (fileName.contains(phoneNum!!)) {
+                        val split = fileName.split("_")
+                        if (split.size > 1) {
+                            val fileDate = split[1].split(".") //20230410131117.mp3
+                            val fileDateString = fileDate[0] // 20230410131117
+                            val fileDateLong = fileDateString.toLong()
+                            if (abs(answerLong - fileDateLong) <= 3) {
+                                return f
+                            }
+                        }
+                    }
+                }
+            }
+            return null
+        } else {
+            return null
+        }
     }
 
     private fun resetValues() {
