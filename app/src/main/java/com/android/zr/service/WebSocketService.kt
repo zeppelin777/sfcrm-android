@@ -259,7 +259,7 @@ class WebSocketService : Service() {
     }
 
     private fun sendCallTime(callLogBean: CallLogBean, hangUpTime: Long) {
-        showLoading()
+//        showLoading()
         val params = CallTimeParams().apply {
             createUserId = userId
             talkTime = callLogBean.duration
@@ -321,7 +321,7 @@ class WebSocketService : Service() {
     }
 
     private fun uploadRecord(id: Long, phoneNum: String?, answerTime: Long) {
-        showLoading()
+//        showLoading()
         val file = getRecordFile(phoneNum, answerTime)
         if (file != null) {
             LogUtil.d("%s", "找到的file文件 = ${file.absolutePath}")
