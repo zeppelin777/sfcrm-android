@@ -28,4 +28,4 @@
 -keep class com.google.gson.** {*;}
 
 
--keep class com.android.zr.bean.**{*;}
+-keep class com.android.zr2.bean.**{*;}

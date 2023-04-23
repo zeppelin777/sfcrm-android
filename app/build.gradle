@@ -4,15 +4,15 @@ plugins {
 }
 
 android {
-    namespace 'com.android.zr'
+    namespace 'com.android.zr2'
     compileSdk 33
 
     defaultConfig {
-        applicationId "com.android.zr"
+        applicationId "com.android.zr2"
         minSdk 24
         targetSdk 33
-        versionCode 102
-        versionName "1.0.2"
+        versionCode 100
+        versionName "1.0.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
