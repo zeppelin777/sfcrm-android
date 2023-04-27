@@ -16,17 +16,23 @@ import com.android.zr2.activity.LoginActivity
 import com.android.zr2.activity.MainActivity
 import com.android.zr2.base.UrlUtils
 import com.android.zr2.bean.*
+import com.android.zr2.bean2.NewSocketBean
 import com.android.zr2.net.HttpRequest
 import com.android.zr2.net.NetResponseCallBack
 import com.android.zr2.utils.*
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
+import com.zhy.http.okhttp.OkHttpUtils
 import okhttp3.*
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.RequestBody.Companion.asRequestBody
 import java.io.File
+import java.io.IOException
 import java.lang.ref.WeakReference
 import java.lang.reflect.Type
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
+
 
 /**
  * Created by matthew on 2023/03/08
@@ -78,12 +84,12 @@ class WebSocketService : Service() {
                         LogUtil.d("%s", "挂断时间 = $time = $currentTimeMillis")
 
                         Intent(this@WebSocketService, MainActivity::class.java).apply {
-                            putExtra("show_loading", true)
+                            putExtra("show_loading", false)
                             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                             startActivity(this)
                         }
 
-                        showLoading()
+//                        showLoading()
                         Handler(Looper.getMainLooper()).postDelayed({
                             val callLogBean = getCallHistory(phoneNumber)
                             hideLoading()
@@ -147,7 +153,7 @@ class WebSocketService : Service() {
     private fun setupSocket() {
         val client = HttpRequest.getInstance().httpClient
         newClient = client.newBuilder().pingInterval(10, TimeUnit.SECONDS).build()
-        request = Request.Builder().url("${UrlUtils.WebSocketUrl}/$userId").build()
+        request = Request.Builder().url("${UrlUtils.WebSocketUrl}/66").build()
         connect()
     }
 
@@ -156,6 +162,8 @@ class WebSocketService : Service() {
         serviceHandler.removeCallbacksAndMessages(null)
         serviceHandler.sendEmptyMessageDelayed(Constants.WHAT_SEND_DELAY_MSG, 300000) //5 min
     }
+
+    private var repeatCount = 0
 
     private val socketListener = object : WebSocketListener() {
         override fun onOpen(webSocket: WebSocket, response: Response) {
@@ -167,7 +175,10 @@ class WebSocketService : Service() {
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
             super.onFailure(webSocket, t, response)
             connected = false
-            connect()
+            if (repeatCount < 10) {
+                repeatCount++
+                connect()
+            }
         }
 
         override fun onClosed(webSocket: WebSocket, code: Int, reason: String) {
@@ -179,6 +190,17 @@ class WebSocketService : Service() {
             super.onMessage(webSocket, text)
 
             LogUtil.d("%s", "text = $text")
+
+//            {"code":0,"msg":"成功","data":"13901012345","actioncode":""}
+
+            val g = Gson()
+            val newSocketBean = g.fromJson(text, NewSocketBean::class.java)
+            if (newSocketBean.data == "13901012345") {
+                val phoneIntent = Intent(Intent.ACTION_CALL, Uri.parse("tel:10086"))
+                phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                startActivity(phoneIntent)
+            }
+
 
             val gson = Gson()
             val bean = gson.fromJson(text, SocketBean::class.java)
@@ -325,24 +347,36 @@ class WebSocketService : Service() {
         val file = getRecordFile(phoneNum, answerTime)
         if (file != null) {
             LogUtil.d("%s", "找到的file文件 = ${file.absolutePath}")
-            HttpRequest.getInstance().upload("${UrlUtils.UploadRecordUrl}?id=$id", "file", null, file, this,
-                object : NetResponseCallBack<EmptyBean>(this) {
-                    override fun onSuccessObject(data: EmptyBean?, id: Int) {
-                        super.onSuccessObject(data, id)
-                        hideLoading()
-                        ToastUtils.showToast("录音保存成功")
-                    }
 
-                    override fun onFail(code: Int, msg: String?, id: Int) {
-                        super.onFail(code, msg, id)
-                        hideLoading()
-                    }
+            val builder: MultipartBody.Builder = MultipartBody.Builder().setType(MultipartBody.FORM)
+            val requestBody: RequestBody = file.asRequestBody("audio/mpeg".toMediaTypeOrNull())
+            builder.addFormDataPart("file", file.name, requestBody)
 
-                    override fun onError(id: Int) {
-                        super.onError(id)
-                        hideLoading()
-                    }
+            OkHttpUtils.put().url("${UrlUtils.UploadFileUrl}/66")
+                .requestBody(builder.build())
+                .build()
+                .execute(object : NetResponseCallBack<EmptyBean>(this) {
+
                 })
+
+//            HttpRequest.getInstance().upload("${UrlUtils.UploadRecordUrl}?id=$id", "file", null, file, this,
+//                object : NetResponseCallBack<EmptyBean>(this) {
+//                    override fun onSuccessObject(data: EmptyBean?, id: Int) {
+//                        super.onSuccessObject(data, id)
+//                        hideLoading()
+//                        ToastUtils.showToast("录音保存成功")
+//                    }
+//
+//                    override fun onFail(code: Int, msg: String?, id: Int) {
+//                        super.onFail(code, msg, id)
+//                        hideLoading()
+//                    }
+//
+//                    override fun onError(id: Int) {
+//                        super.onError(id)
+//                        hideLoading()
+//                    }
+//                })
         } else {
             hideLoading()
             ToastUtils.showToast("错误，没有找到录音文件")
@@ -427,6 +461,7 @@ class WebSocketService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         socket?.close(1000, "用户退出")
+        repeatCount = 0
         manager.listen(stateListener, PhoneStateListener.LISTEN_NONE)
         serviceHandler.removeCallbacksAndMessages(null)
     }

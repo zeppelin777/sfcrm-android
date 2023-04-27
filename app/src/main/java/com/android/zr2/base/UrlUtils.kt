@@ -6,7 +6,8 @@ package com.android.zr2.base
 object UrlUtils {
 
     private const val BaseUrl = "http://crzz.cc:18443"
-    const val WebSocketUrl = "ws://crzz.cc:18443/ws/android"
+    const val WebSocketUrl = "ws://175.24.181.162:8090/ws"
+    const val UploadFileUrl = "http://175.24.181.162:8090/ws"
 
 //    private const val BaseUrl = "https://zhongrong.work"
 //    const val WebSocketUrl = "wss://zhongrong.work/ws/android"
