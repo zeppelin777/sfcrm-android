@@ -83,10 +83,17 @@ class LoginActivity : BaseActivity() {
 
     private fun initViews() {
         binding.btLogin.setOnClickListener {
+
+            val name = binding.etUsername.text.toString()
+            val pwd = binding.etPassword.text.toString()
+            if (TextUtils.isEmpty(name) || TextUtils.isEmpty(pwd)) {
+                return@setOnClickListener
+            }
+
             showLoading()
             val params = LoginParams().apply {
-                username = binding.etUsername.text.toString()
-                password = binding.etPassword.text.toString()
+                username = name
+                password = pwd
             }
 
             HttpRequest.getInstance().postJson(

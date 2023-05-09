@@ -30,6 +30,7 @@ import java.io.File
 import java.io.IOException
 import java.lang.ref.WeakReference
 import java.lang.reflect.Type
+import java.util.*
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
 
@@ -178,6 +179,8 @@ class WebSocketService : Service() {
             if (repeatCount < 10) {
                 repeatCount++
                 connect()
+            } else {
+                logout()
             }
         }
 
@@ -297,6 +300,7 @@ class WebSocketService : Service() {
             val dialTimeLong = answerTimeLong - callLogBean.date
             dialTime = dialTimeLong
 
+            type = if (callLogBean.type == CallLog.Calls.OUTGOING_TYPE) 0 else 1 //0呼出，1呼入
 
             state = if (callLogBean.duration > 0) {
                 Constants.CALL_TYPE_CALL_HAS_ANSWER
@@ -356,7 +360,17 @@ class WebSocketService : Service() {
                 .requestBody(builder.build())
                 .build()
                 .execute(object : NetResponseCallBack<EmptyBean>(this) {
+                    override fun onSuccessObject(data: EmptyBean?, id: Int) {
+                        super.onSuccessObject(data, id)
+                    }
 
+                    override fun onFail(code: Int, msg: String?, id: Int) {
+                        super.onFail(code, msg, id)
+                    }
+
+                    override fun onError(id: Int) {
+                        super.onError(id)
+                    }
                 })
 
 //            HttpRequest.getInstance().upload("${UrlUtils.UploadRecordUrl}?id=$id", "file", null, file, this,
@@ -395,10 +409,31 @@ class WebSocketService : Service() {
                     LogUtil.d("%s", f.length())
                     LogUtil.d("%s", "----------------")
                     val fileName = f.name  //10086(10086)_20230410131117.mp3
+
+                    val split = fileName.split("_")
+                    if (split.size > 1) {
+                        val fileDate = split[1].split(".") //20230410131117.mp3
+                        val fileDateString = fileDate[0] // 20230410131117
+
+                        val year = fileDateString.substring(0, 4)
+                        val month = fileDateString.substring(4, 6)
+                        val day = fileDateString.substring(6, 8)
+                        val hour = fileDateString.substring(8, 10)
+                        val minute = fileDateString.substring(10, 12)
+                        val seconds = fileDateString.substring(12, 14)
+                        val calendar = Calendar.getInstance()
+                        calendar.set(year.toInt(), month.toInt() - 1, day.toInt(), hour.toInt(), minute.toInt(), seconds.toInt())
+                        val fileTimeMillis = calendar.timeInMillis
+
+                        if (fileTimeMillis < answerTime - 14 * 24 * 3600 * 1000) {
+                            f.delete()
+                        }
+                    }
+
                     if (fileName.contains(phoneNum!!)) {
-                        val split = fileName.split("_")
-                        if (split.size > 1) {
-                            val fileDate = split[1].split(".") //20230410131117.mp3
+                        val split2 = fileName.split("_")
+                        if (split2.size > 1) {
+                            val fileDate = split2[1].split(".") //20230410131117.mp3
                             val fileDateString = fileDate[0] // 20230410131117
                             val fileDateLong = fileDateString.toLong()
                             if (abs(answerLong - fileDateLong) <= 3) {
@@ -408,10 +443,8 @@ class WebSocketService : Service() {
                     }
                 }
             }
-            return null
-        } else {
-            return null
         }
+        return null
     }
 
     private fun resetValues() {
