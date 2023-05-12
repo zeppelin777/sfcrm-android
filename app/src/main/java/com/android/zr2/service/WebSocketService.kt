@@ -154,7 +154,8 @@ class WebSocketService : Service() {
     private fun setupSocket() {
         val client = HttpRequest.getInstance().httpClient
         newClient = client.newBuilder().pingInterval(10, TimeUnit.SECONDS).build()
-        request = Request.Builder().url("${UrlUtils.WebSocketUrl}/66").build()
+        request = Request.Builder().url("${UrlUtils.WebSocketUrl}/$userId").build()
+        LogUtil.d("%s", "${UrlUtils.WebSocketUrl}/$userId")
         connect()
     }
 
@@ -176,7 +177,7 @@ class WebSocketService : Service() {
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: Response?) {
             super.onFailure(webSocket, t, response)
             connected = false
-            if (repeatCount < 10) {
+            if (repeatCount < 3) {
                 repeatCount++
                 connect()
             } else {
@@ -196,6 +197,7 @@ class WebSocketService : Service() {
 
 //            {"code":0,"msg":"成功","data":"13901012345","actioncode":""}
 
+            // TODO:  跳转电话app界面
             val g = Gson()
             val newSocketBean = g.fromJson(text, NewSocketBean::class.java)
             if (newSocketBean.data == "13901012345") {

@@ -12,7 +12,8 @@ class HeaderInterceptor : Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val oldRequest = chain.request()
-        val request = oldRequest.newBuilder().addHeader("Admin-Token", SpUtils.getString(Constants.TOKEN)).build()
+        val request = oldRequest.newBuilder().addHeader("token", SpUtils.getString(Constants.TOKEN)).build()
+//        val request = oldRequest.newBuilder().addHeader("Admin-Token", SpUtils.getString(Constants.TOKEN)).build()
         return chain.proceed(request)
     }
 

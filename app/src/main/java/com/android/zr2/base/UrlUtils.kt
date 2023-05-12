@@ -13,13 +13,15 @@ object UrlUtils {
     const val CheckTokenUrl = "$BaseUrl/adminUser/checkToken"
 //    const val LoginUrl = "$BaseUrl/login"
     const val LogoutUrl = "$BaseUrl/logout"
-    const val SendCallTimeUrl = "$BaseUrl/crmCall/save"
+//    const val SendCallTimeUrl = "$BaseUrl/crmCall/save"
     const val UploadRecordUrl = "$BaseUrl/crmCall/upload"
 
 
-    const val WebSocketUrl = "ws://175.24.181.162:8090/ws"
-    const val UploadFileUrl = "http://175.24.181.162:8090/ws"
-    const val LoginUrl = "http://crm.shufeng.vip/api/v1/system/loginApp"
+    private const val BaseUrl2 = "http://crm.shufeng.vip/api/v1"
+    const val WebSocketUrl = "ws://crm.shufeng.vip:8090/ws"
+    const val UploadFileUrl = "http://crm.shufeng.vip:8090/ws"
+    const val LoginUrl = "$BaseUrl2/system/loginApp"
+    const val SendCallTimeUrl = "$BaseUrl2/customerChannel/converse_add"
 
 
 }
