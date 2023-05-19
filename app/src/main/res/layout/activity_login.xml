@@ -28,7 +28,7 @@
             android:layout_marginStart="@dimen/x30"
             android:layout_marginEnd="@dimen/x30"
             android:layout_marginBottom="@dimen/x20"
-            android:text="yewu1" />
+            android:text="15021677033" />
 
     </com.google.android.material.textfield.TextInputLayout>
 
@@ -49,7 +49,7 @@
             android:layout_marginBottom="@dimen/x30"
             android:hint="@string/password"
             android:inputType="textPassword"
-            android:text="20232023" />
+            android:text="123456" />
 
 
     </com.google.android.material.textfield.TextInputLayout>

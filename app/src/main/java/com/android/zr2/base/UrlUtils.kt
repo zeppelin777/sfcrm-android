@@ -21,7 +21,7 @@ object UrlUtils {
     const val WebSocketUrl = "ws://crm.shufeng.vip:8090/ws"
     const val UploadFileUrl = "http://crm.shufeng.vip:8090/ws"
     const val LoginUrl = "$BaseUrl2/system/loginApp"
-    const val SendCallTimeUrl = "$BaseUrl2/customerChannel/converse_add"
+    const val SendCallTimeUrl = "$BaseUrl2/system/customerChannel/addConverse"
 
 
 }

@@ -1,6 +1,7 @@
 package com.android.zr2.net
 
 import com.android.zr2.utils.Constants
+import com.android.zr2.utils.LogUtil
 import com.android.zr2.utils.SpUtils
 import okhttp3.Interceptor
 import okhttp3.Response
@@ -12,8 +13,7 @@ class HeaderInterceptor : Interceptor {
 
     override fun intercept(chain: Interceptor.Chain): Response {
         val oldRequest = chain.request()
-        val request = oldRequest.newBuilder().addHeader("token", SpUtils.getString(Constants.TOKEN)).build()
-//        val request = oldRequest.newBuilder().addHeader("Admin-Token", SpUtils.getString(Constants.TOKEN)).build()
+        val request = oldRequest.newBuilder().addHeader("Authorization", "Bearer ${SpUtils.getString(Constants.TOKEN)}").build()
         return chain.proceed(request)
     }
 

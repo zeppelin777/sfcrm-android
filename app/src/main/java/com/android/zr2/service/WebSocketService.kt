@@ -10,6 +10,7 @@ import android.os.*
 import android.provider.CallLog
 import android.telephony.PhoneStateListener
 import android.telephony.TelephonyManager
+import android.text.TextUtils
 import androidx.core.app.NotificationCompat
 import com.android.zr2.R
 import com.android.zr2.activity.LoginActivity
@@ -95,7 +96,9 @@ class WebSocketService : Service() {
                             val callLogBean = getCallHistory(phoneNumber)
                             hideLoading()
                             if (callLogBean != null) {
-                                sendCallTime(callLogBean, currentTimeMillis)
+                                if (!TextUtils.isEmpty(callLogBean.phoneNumber)) {
+                                    sendCallTime(callLogBean, currentTimeMillis)
+                                }
                             }
                         }, 3000)
                     }
@@ -200,11 +203,9 @@ class WebSocketService : Service() {
             // TODO:  跳转电话app界面
             val g = Gson()
             val newSocketBean = g.fromJson(text, NewSocketBean::class.java)
-            if (newSocketBean.data == "13901012345") {
-                val phoneIntent = Intent(Intent.ACTION_CALL, Uri.parse("tel:10086"))
-                phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                startActivity(phoneIntent)
-            }
+            val phoneIntent = Intent(Intent.ACTION_CALL, Uri.parse("tel:${newSocketBean.data}"))
+            phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            startActivity(phoneIntent)
 
 
             val gson = Gson()
@@ -316,6 +317,8 @@ class WebSocketService : Service() {
 
         }
         LogUtil.d("%s", Gson().toJson(params))
+        LogUtil.d("%s", UrlUtils.SendCallTimeUrl)
+
         HttpRequest.getInstance().postJson(UrlUtils.SendCallTimeUrl, Gson().toJson(params), this, object : NetResponseCallBack<SaveRecordBean>(this) {
             override fun onSuccessObject(data: SaveRecordBean?, id: Int) {
                 super.onSuccessObject(data, id)
