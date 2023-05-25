@@ -208,37 +208,37 @@ class WebSocketService : Service() {
             startActivity(phoneIntent)
 
 
-            val gson = Gson()
-            val bean = gson.fromJson(text, SocketBean::class.java)
-            Intent().apply {
-                action = Constants.RECEIVER_ACTION
-                putExtra("type", Constants.ACTION_PHONE)
-                putExtra("action", bean)
-                sendBroadcast(this)
-            }
+//            val gson = Gson()
+//            val bean = gson.fromJson(text, SocketBean::class.java)
+//            Intent().apply {
+//                action = Constants.RECEIVER_ACTION
+//                putExtra("type", Constants.ACTION_PHONE)
+//                putExtra("action", bean)
+//                sendBroadcast(this)
+//            }
 
 
-            if ("sendPhone" == bean.action) {
-                HttpRequest.getInstance().post(UrlUtils.CheckTokenUrl, null, null,
-                    object : NetResponseCallBack<EmptyBean>(this@WebSocketService) {
-
-                        override fun onSuccessObject(data: EmptyBean?, id: Int) {
-                            super.onSuccessObject(data, id)
-
-                            this@WebSocketService.model = bean.model
-//                            val phoneIntent = Intent(Intent.ACTION_CALL, Uri.parse("tel:10086"))
-                            val phoneIntent = Intent(Intent.ACTION_CALL, Uri.parse("tel:${bean.message}"))
-                            phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                            startActivity(phoneIntent)
-
-                        }
-
-                        override fun onFail(code: Int, msg: String?, id: Int) {
-                            super.onFail(code, msg, id)
-                            logout()
-                        }
-                    })
-            }
+//            if ("sendPhone" == bean.action) {
+//                HttpRequest.getInstance().post(UrlUtils.CheckTokenUrl, null, null,
+//                    object : NetResponseCallBack<EmptyBean>(this@WebSocketService) {
+//
+//                        override fun onSuccessObject(data: EmptyBean?, id: Int) {
+//                            super.onSuccessObject(data, id)
+//
+//                            this@WebSocketService.model = bean.model
+////                            val phoneIntent = Intent(Intent.ACTION_CALL, Uri.parse("tel:10086"))
+//                            val phoneIntent = Intent(Intent.ACTION_CALL, Uri.parse("tel:${bean.message}"))
+//                            phoneIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+//                            startActivity(phoneIntent)
+//
+//                        }
+//
+//                        override fun onFail(code: Int, msg: String?, id: Int) {
+//                            super.onFail(code, msg, id)
+//                            logout()
+//                        }
+//                    })
+//            }
         }
     }
 
@@ -325,7 +325,8 @@ class WebSocketService : Service() {
                 ToastUtils.showToast("通话记录保存成功")
                 resetValues()
                 hideLoading()
-                uploadRecord(data!!.callRecordId, callLogBean.phoneNumber, params.answerTime)
+                uploadRecord(callLogBean.phoneNumber, params.answerTime)
+//                uploadRecord(data!!.callRecordId, callLogBean.phoneNumber, params.answerTime)
             }
 
             override fun onFail(responseCode: Int, msg: String?, id: Int) {
@@ -333,7 +334,8 @@ class WebSocketService : Service() {
                 resetValues()
                 hideLoading()
 
-                if (responseCode == 302) {
+                if (responseCode == 401) {
+//                    {"code":401,"message":"token已失效"}
                     logout()
                 }
                 // {"code":302,"msg":"请先登录！","data":{"extra":1,"extraTime":"2023-03-15 16:03:57"}}
@@ -351,7 +353,7 @@ class WebSocketService : Service() {
         })
     }
 
-    private fun uploadRecord(id: Long, phoneNum: String?, answerTime: Long) {
+    private fun uploadRecord(phoneNum: String?, answerTime: Long) {
 //        showLoading()
         val file = getRecordFile(phoneNum, answerTime)
         if (file != null) {
@@ -361,12 +363,13 @@ class WebSocketService : Service() {
             val requestBody: RequestBody = file.asRequestBody("audio/mpeg".toMediaTypeOrNull())
             builder.addFormDataPart("file", file.name, requestBody)
 
-            OkHttpUtils.put().url("${UrlUtils.UploadFileUrl}/66")
+            OkHttpUtils.put().url("${UrlUtils.UploadFileUrl}/$userId")
                 .requestBody(builder.build())
                 .build()
                 .execute(object : NetResponseCallBack<EmptyBean>(this) {
                     override fun onSuccessObject(data: EmptyBean?, id: Int) {
                         super.onSuccessObject(data, id)
+                        ToastUtils.showToast("录音保存成功")
                     }
 
                     override fun onFail(code: Int, msg: String?, id: Int) {

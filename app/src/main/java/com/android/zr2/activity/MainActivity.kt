@@ -64,7 +64,7 @@ class MainActivity : BaseActivity(), View.OnClickListener {
             R.id.btn_logout -> {
                 showLoading()
                 HttpRequest.getInstance()
-                    .post(UrlUtils.LogoutUrl, null,this, object : NetResponseCallBack<EmptyBean>(this) {
+                    .delete(UrlUtils.LogoutUrl, this, object : NetResponseCallBack<EmptyBean>(this) {
                         override fun onSuccessObject(data: EmptyBean?, id: Int) {
                             super.onSuccessObject(data, id)
                             ToastUtils.showToast("已退出")

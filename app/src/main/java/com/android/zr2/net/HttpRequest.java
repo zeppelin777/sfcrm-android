@@ -101,6 +101,15 @@ public class HttpRequest {
                 .execute(callBack);
     }
 
+    public void delete(String url, Object tag, ResponseCallBack callBack) {
+        OkHttpUtils
+                .delete()
+                .url(url)
+                .tag(tag)
+                .build()
+                .execute(callBack);
+    }
+
     public void upload(String url, String name, Map<String, String> map, File file, Object tag, ResponseCallBack callBack) {
         uploadFile(url, 1, name, map, file, tag, callBack);
     }
