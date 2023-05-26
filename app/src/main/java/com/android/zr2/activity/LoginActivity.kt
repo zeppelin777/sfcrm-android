@@ -62,6 +62,8 @@ class LoginActivity : BaseActivity() {
             }
         }
 
+        checkSdCardPermission()
+
     }
 
     private fun showPermissionDialog() {
@@ -149,6 +151,9 @@ class LoginActivity : BaseActivity() {
 
     override fun onResume() {
         super.onResume()
+    }
+
+    private fun checkSdCardPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             if (!Environment.isExternalStorageManager()) {
                 AlertDialog.Builder(this)
@@ -160,7 +165,7 @@ class LoginActivity : BaseActivity() {
             }
         } else {
             PermissionX.init(this@LoginActivity)
-                .permissions(Manifest.permission.READ_EXTERNAL_STORAGE,)
+                .permissions(Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE)
                 .onExplainRequestReason { scope, deniedList ->
                     scope.showRequestReasonDialog(
                         deniedList,
