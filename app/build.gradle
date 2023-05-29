@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace 'com.android.zr2'
+    namespace 'com.android.shufeng'
     compileSdk 33
 
     defaultConfig {
-        applicationId "com.android.zr2"
+        applicationId "com.android.shufeng"
         minSdk 24
         targetSdk 33
         versionCode 100
